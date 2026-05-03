@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -517,7 +518,14 @@ SECTION 2 — metadata as a single valid JSON object, between these exact delimi
 
     # -- Phase 6: Social media --------------------------------------------
 
+    @staticmethod
+    def _substack_url(topic: str) -> str:
+        slug = re.sub(r"[^a-z0-9\s-]", "", topic.lower())
+        slug = re.sub(r"\s+", "-", slug).strip("-")[:80]
+        return f"https://substack.com/@joinivyedge/p/{slug}"
+
     def social_phase(self, brief: ArticleBrief, final_draft: str) -> str:
+        post_url = self._substack_url(brief.topic)
         prompt = f"""You are writing social media content to distribute an IvyEdge blog post.
 
 PRE-LAUNCH CONTEXT
@@ -529,6 +537,7 @@ BLOG POST
 Topic: {brief.topic}
 Persona: {brief.persona}
 Primary keyword: {brief.primary_keyword}
+Substack URL: {post_url}
 
 FULL FINAL DRAFT
 {final_draft}
@@ -548,7 +557,7 @@ Rules:
 - ≤ 280 characters each (including spaces and any hashtags)
 - Lead with a punchy, opinionated first line — no throat-clearing
 - One concrete insight or stat from the post
-- End with a CTA or question that drives replies or clicks
+- End with the actual Substack URL ({post_url}) — not a placeholder like [link]
 - 1–3 hashtags max; no more
 - No em-dashes (—); use a dash (-) or a line break instead
 
@@ -570,10 +579,10 @@ Write one caption + a suggested visual description.
 Rules:
 - Caption: 150–300 words; warm, direct IvyEdge voice; line breaks every 1–2 sentences
 - Hook in the first line (no "Hey!" or emojis to open)
-- 3–5 paragraphs; end with a question or CTA to drive comments
+- 3–5 paragraphs; end with a question or CTA to drive comments; reference "link in bio" for the Substack post ({post_url})
 - Hashtags: 10–15 highly relevant tags on a separate line at the bottom
 - Visual: 1–2 sentences describing what the static image or carousel should show
-  (colour palette, text overlay idea, lifestyle image direction)
+  (use only IvyEdge brand colors from the brand voice guidelines; no invented colors)
 
 Format:
 ### Caption
@@ -595,7 +604,7 @@ Rules:
 - Spoken dialogue only — no filler ("um", "so basically", "right?")
 - On-screen text: include [TEXT: ...] cues for words to flash on screen
 - B-roll / visual: include [VISUAL: ...] cues for what to show on camera
-- CTA: end with one clear audience-building action (waitlist, newsletter, share)
+- CTA: end with one clear audience-building action; direct viewers to the Substack post at {post_url} (say "link in bio" for video, include the URL in the production notes)
 - Tone: confident, knowledgeable friend — not a lecture, not a sales pitch
 
 Format:
