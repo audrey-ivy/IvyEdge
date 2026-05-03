@@ -202,3 +202,37 @@ Use this section whenever describing visuals, carousel design, video backgrounds
 - **Accent pops:** Coral Pink (`#ff7b9c`) for stats, pull quotes, CTAs — sparingly
 - **Photography:** Real-desk, real-life imagery. No stock-photo handshakes. Warm, natural light. Lived-in but organized.
 - **No invented colors** — every shade used in any visual direction must come from this palette
+
+---
+
+## Readability target
+
+**Dale-Chall score: 8.5**
+
+A Dale-Chall score of 8.5 corresponds to college-level reading (grades 13–15). This is the right
+target for IvyEdge: our readers are smart, research-driven women who are not looking to be talked
+down to. We make complex finance legible — not simple.
+
+**What this means in practice:**
+- Use precise financial vocabulary when it's the right word — never swap "APR" for "your rate" just
+  to seem approachable. Explain the term once, then use it.
+- Short sentences (avg 15–18 words) offset technical content and keep the score in range.
+- Avoid jargon that adds length without adding meaning ("utilize", "leverage", "solutions").
+- Every paragraph should be readable on first pass. If a sentence needs re-reading, rewrite it.
+- The score is checked automatically on every final draft and included in meta.json.
+
+---
+
+## Standard Substack footer
+
+Every Substack post ends with this footer, verbatim, after the main CTA:
+
+---
+
+IvyEdge is being built for every woman who has been underestimated by a system that never genuinely evaluated her.
+
+If that's you, we want you close when we launch.
+
+[Get on the IvyEdge waitlist →](https://substack.com/@joinivyedge)
+
+*Be first. You've waited long enough.*

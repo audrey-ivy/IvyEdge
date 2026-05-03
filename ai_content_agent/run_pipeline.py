@@ -36,12 +36,42 @@ from ivyedge_content_agent import IvyEdgeContentAgent, GenerationResult
 from substack_publisher import SubstackPublisher
 
 
+import ssl
+import nltk
+import textstat
+
+def _ensure_nltk_data() -> None:
+    """Download cmudict (needed by textstat) on first run, bypassing SSL issues on macOS."""
+    try:
+        nltk.data.find("corpora/cmudict")
+    except LookupError:
+        _orig = ssl._create_default_https_context
+        ssl._create_default_https_context = ssl._create_unverified_context
+        nltk.download("cmudict", quiet=True)
+        ssl._create_default_https_context = _orig
+
+_ensure_nltk_data()
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("ivyedge.cli")
+
+DALE_CHALL_TARGET = 8.5
+
+SUBSTACK_FOOTER = """
+---
+
+IvyEdge is being built for every woman who has been underestimated by a system that never genuinely evaluated her.
+
+If that's you, we want you close when we launch.
+
+[Get on the IvyEdge waitlist →](https://substack.com/@joinivyedge)
+
+*Be first. You've waited long enough.*
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +85,7 @@ def _slugify(text: str) -> str:
     return text[:60] or "post"
 
 
-def _save_result(result: GenerationResult, out_root: Path) -> Path:
+def _save_result(result: GenerationResult, out_root: Path) -> tuple[Path, float]:
     """Write all artifacts for a single generation to its own folder."""
     date = datetime.utcnow().strftime("%Y-%m-%d")
     slug = _slugify(result.brief.topic)
@@ -75,6 +105,10 @@ def _save_result(result: GenerationResult, out_root: Path) -> Path:
     if result.social:
         (folder / "06_social.md").write_text(result.social, encoding="utf-8")
 
+    # Dale-Chall readability score on the final draft
+    plain = re.sub(r"[#*_`\[\]()]", "", result.final_draft)
+    dale_chall = round(textstat.dale_chall_readability_score(plain), 2)
+
     meta = {
         "topic": result.brief.topic,
         "persona": result.brief.persona,
@@ -86,11 +120,17 @@ def _save_result(result: GenerationResult, out_root: Path) -> Path:
         "started_at": result.started_at,
         "finished_at": result.finished_at,
         "token_usage": result.token_usage,
+        "dale_chall_score": dale_chall,
+        "dale_chall_target": DALE_CHALL_TARGET,
+        "dale_chall_delta": round(dale_chall - DALE_CHALL_TARGET, 2),
     }
     (folder / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
+    delta = dale_chall - DALE_CHALL_TARGET
+    flag = "✓" if abs(delta) <= 0.5 else ("↑ too complex" if delta > 0 else "↓ too simple")
+    logger.info("Dale-Chall: %.2f (target %.1f) %s", dale_chall, DALE_CHALL_TARGET, flag)
     logger.info("Saved draft to %s", folder)
-    return folder
+    return folder, dale_chall
 
 
 # ---------------------------------------------------------------------------
@@ -108,12 +148,8 @@ def _maybe_publish(result: GenerationResult, folder: Path, publish: bool) -> Non
 
     title = result.brief.topic
     subtitle = result.meta_description or ""
-    url_info = publisher.publish(
-        title=title,
-        body_markdown=result.final_draft,
-        subtitle=subtitle,
-    )
-    post_url = url_info.get("canonical_url") or url_info.get("url", "")
+    body = result.final_draft.rstrip() + "\n" + SUBSTACK_FOOTER
+    post_url = publisher.publish(title=title, body_markdown=body, subtitle=subtitle)
     print(f"  Published to Substack: {post_url}")
     (folder / "substack_url.txt").write_text(post_url, encoding="utf-8")
 
@@ -130,9 +166,10 @@ def cmd_intro(args: argparse.Namespace) -> int:
         on_phase=lambda name, _: print(f"  [done] {name}"),
     )
 
-    folder = _save_result(result, Path(args.output))
+    folder, dc = _save_result(result, Path(args.output))
     print(f"\nDone. Intro post: {folder / '05_final_draft.md'}")
     print(f"      Social copy: {folder / '06_social.md'}")
+    print(f"Dale-Chall: {dc} (target {DALE_CHALL_TARGET})")
     _maybe_publish(result, folder, args.publish)
     return 0
 
@@ -158,11 +195,12 @@ def cmd_single(args: argparse.Namespace) -> int:
         on_phase=lambda name, _: print(f"  [done] {name}"),
     )
 
-    folder = _save_result(result, Path(args.output))
+    folder, dc = _save_result(result, Path(args.output))
     print(f"\nDone. Final draft: {folder / '05_final_draft.md'}")
     print(f"      Social copy:  {folder / '06_social.md'}")
     print(f"Tokens: in={result.token_usage.get('input_tokens', 0)} "
           f"out={result.token_usage.get('output_tokens', 0)}")
+    print(f"Dale-Chall: {dc} (target {DALE_CHALL_TARGET})")
     _maybe_publish(result, folder, args.publish)
     return 0
 
@@ -219,9 +257,10 @@ def cmd_batch(args: argparse.Namespace) -> int:
             row["error"] = str(e)[:200]
             continue
 
-        folder = _save_result(result, out_root)
+        folder, dc = _save_result(result, out_root)
         row["status"] = "drafted"
         row["draft_folder"] = str(folder)
+        row["dale_chall"] = dc
         row["drafted_at"] = datetime.utcnow().isoformat(timespec="seconds") + "Z"
         _maybe_publish(result, folder, args.publish)
 

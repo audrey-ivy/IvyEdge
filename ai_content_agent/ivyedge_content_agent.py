@@ -443,6 +443,12 @@ EDITING CHECKLIST
     Builder, Ivy Credit Monitor, Ivy Checking, or 'apply' / 'check your
     rate' language. The CTA must be audience-building only (waitlist,
     newsletter, share, survey, tell us your story).
+11. READABILITY: Target a Dale-Chall score of 8.5 (college-level, grades 13-15).
+    - Replace multi-syllable jargon with precise but common words where meaning is preserved
+    - Keep average sentence length 15-18 words; break up any sentence over 25 words
+    - Financial terms (APR, FICO, 1099) are acceptable — explain once, then use freely
+    - Never simplify to the point of imprecision; simplify to the point of clarity
+    - Every paragraph should be readable on first pass; if a sentence needs re-reading, rewrite it
 
 VOICE CALIBRATION
 GOOD: "Your 1099 income isn't unstable. Banks are measuring the wrong thing."
