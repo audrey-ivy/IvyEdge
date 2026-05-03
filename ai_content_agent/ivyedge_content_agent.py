@@ -36,6 +36,7 @@ from typing import Iterable, Optional
 
 import anthropic
 from dotenv import load_dotenv
+from competitor_analysis import run_competitor_analysis
 
 load_dotenv()
 
@@ -66,6 +67,7 @@ CORE_CONTEXT_FILES = {
     "personas": "personas.md",
     "product_knowledge": "product_knowledge.md",
     "strategy": "content_strategy.md",
+    "inclusive_marketing": "inclusive_marketing.md",
 }
 
 # Folders walked recursively for additional context (research summaries,
@@ -98,6 +100,7 @@ class ArticleBrief:
 class GenerationResult:
     """Full output of a generation run, including every intermediate step."""
     brief: ArticleBrief
+    format_analysis: str = ""   # Phase 0 — competitive format benchmarks
     research: str = ""
     outline: str = ""
     first_draft: str = ""
@@ -320,7 +323,15 @@ OUTPUT FORMAT (markdown)
 
     # -- Phase 2: Outline -------------------------------------------------
 
-    def outline_phase(self, brief: ArticleBrief, research: str) -> str:
+    def outline_phase(self, brief: ArticleBrief, research: str, format_guidance: str = "") -> str:
+        format_block = (
+            f"\nCOMPETITIVE FORMAT BENCHMARKS\n"
+            f"The following analysis is based on the top free results for '{brief.primary_keyword}'.\n"
+            f"Use it to set word count, heading structure, and section design.\n"
+            f"Do not copy competitor angles — use this purely for structural guidance.\n\n"
+            f"{format_guidance}\n"
+        ) if format_guidance else ""
+
         prompt = f"""You are outlining an IvyEdge blog post.
 
 ARTICLE BRIEF
@@ -328,7 +339,7 @@ ARTICLE BRIEF
 - Persona: {brief.persona}
 - Pillar: {brief.pillar}
 - Target length: {brief.target_word_count[0]}-{brief.target_word_count[1]} words
-
+{format_block}
 RESEARCH (from previous step)
 {research}
 
@@ -690,8 +701,21 @@ Format:
                 on_phase(name, out)
             return out
 
+        # Phase 0 — competitive format analysis (non-fatal if it fails)
+        try:
+            logger.info("---- Phase: format_analysis ----")
+            _, guidance = run_competitor_analysis(brief.primary_keyword)
+            result.format_analysis = guidance
+            if on_phase:
+                on_phase("format_analysis", guidance)
+        except Exception as e:
+            logger.warning("Format analysis skipped: %s", e)
+            result.format_analysis = ""
+
         result.research = step("research", lambda: self.research_phase(brief))
-        result.outline = step("outline", lambda: self.outline_phase(brief, result.research))
+        result.outline = step("outline", lambda: self.outline_phase(
+            brief, result.research, result.format_analysis
+        ))
         result.first_draft = step("draft", lambda: self.draft_phase(brief, result.outline))
         result.edited_draft = step("voice_edit", lambda: self.voice_edit_phase(result.first_draft))
 

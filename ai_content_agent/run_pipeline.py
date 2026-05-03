@@ -65,6 +65,8 @@ def _save_result(result: GenerationResult, out_root: Path) -> Path:
     (folder / "00_brief.json").write_text(
         json.dumps(result.brief.__dict__, indent=2), encoding="utf-8"
     )
+    if result.format_analysis:
+        (folder / "00_format_analysis.md").write_text(result.format_analysis, encoding="utf-8")
     (folder / "01_research.md").write_text(result.research, encoding="utf-8")
     (folder / "02_outline.md").write_text(result.outline, encoding="utf-8")
     (folder / "03_first_draft.md").write_text(result.first_draft, encoding="utf-8")
