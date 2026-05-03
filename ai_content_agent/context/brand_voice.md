@@ -143,3 +143,62 @@ When in doubt about a sentence, ask:
 **Would the friend who happens to work in finance — the one you actually call — say this?**
 
 If the answer is "no, that sounds like a bank," rewrite it.
+
+---
+
+## Visual Identity
+
+Use this section whenever describing visuals, carousel design, video backgrounds, graphics, or any on-brand imagery. Never invent colors or fonts — always use the exact values below.
+
+### Color Palette
+
+**Primary colors**
+| Hex | Name | Role |
+|-----|------|------|
+| `#1c6350` | Deep Forest Green | Headings, nav, primary buttons, section headers, table headers. The backbone of every layout. |
+| `#95c590` | Sage Green | Subheadings, card borders, hover states, progress indicators. |
+| `#9ce3d0` | Mint | Table fills, background tints, illustration accents. Light enough to sit behind body copy. |
+
+**Secondary colors**
+| Hex | Name | Role |
+|-----|------|------|
+| `#000501` | Near-Black | All body copy, labels, form fields, icons. Not a pure black — the warmth matters. |
+| `#bebbbb` | Silver | Dividers, table borders, input borders, secondary labels, footer text. Never for primary text. |
+
+**Accent colors**
+| Hex | Name | Role |
+|-----|------|------|
+| `#ff7b9c` | Coral Pink | Section labels, CTAs, key stats, tagline, pillar markers. Max 15% of any surface. |
+| `#62466b` | Deep Plum | "Don't" examples, disclaimer headers, off-brand call-outs. Depth and contrast. |
+
+**Color rules**
+- Never use Coral Pink (`#ff7b9c`) as a background for body text — contrast ratio fails WCAG AA
+- Deep Forest Green (`#1c6350`) on white is always safe for any text size
+- Near-Black (`#000501`) is the only approved body copy color on white or mint backgrounds
+- Silver (`#bebbbb`) is for borders and secondary labels only — never for primary text
+- Mint (`#9ce3d0`) as a background: pair with near-black or forest text only
+
+### Typography
+
+| Role | Font | Weight | Color |
+|------|------|--------|-------|
+| Display / Hero | Fraunces | Bold 700 | Forest Green `#1c6350` |
+| H1 / H2 | Fraunces | Bold / Regular | Forest Green `#1c6350` |
+| H3 / Card headers | DM Sans | Bold 700 | Near-Black `#000501` |
+| Body copy | DM Sans | Regular 400 | Near-Black `#000501` |
+| Section tags | DM Sans | Bold 700 + ALL CAPS | Coral Pink `#ff7b9c` |
+| Financial figures / rates / stats | DM Mono | Regular or Bold | Near-Black or Forest Green |
+| Legal / fine print | DM Sans | Regular 400 | Silver `#bebbbb` |
+
+**Typography rules**
+- Maximum 3 typefaces on any surface: Fraunces, DM Sans, DM Mono — no others
+- Never use Fraunces for body copy — it is a display font only
+- Never mix DM Mono into running prose — numbers and data only
+
+### Visual direction for social
+
+- **Backgrounds:** Deep Forest Green (`#1c6350`) or Near-Black (`#000501`) for dark surfaces; white or Mint (`#9ce3d0`) for light surfaces
+- **Text overlays:** White or Coral Pink (`#ff7b9c`) on dark; Near-Black or Forest Green on light
+- **Accent pops:** Coral Pink (`#ff7b9c`) for stats, pull quotes, CTAs — sparingly
+- **Photography:** Real-desk, real-life imagery. No stock-photo handshakes. Warm, natural light. Lived-in but organized.
+- **No invented colors** — every shade used in any visual direction must come from this palette
