@@ -47,6 +47,13 @@ log "Step 3: Running content pipeline..."
   >> "$LOG_FILE" 2>&1
 log "Step 3 done."
 
+# ── Step 4: Generate image cards + videos, post to Instagram and Threads
+log "Step 4: Running social media agent..."
+"$PYTHON" social_media_agent.py \
+  --output-dir "$AGENT_DIR/output" \
+  >> "$LOG_FILE" 2>&1
+log "Step 4 done."
+
 log "========================================"
 log "Monday pipeline complete. Log: $LOG_FILE"
 log "========================================"
