@@ -4,6 +4,10 @@
 # Generated drafts (often want these tracked, sometimes not — adjust to taste)
 output/
 
+# Engagement agent logs and output (contain post IDs, activity history — keep local)
+engagement_log/
+engagement_output/
+
 # Python
 __pycache__/
 *.pyc
