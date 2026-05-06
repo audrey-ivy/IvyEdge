@@ -2,8 +2,8 @@
 IvyEdge Engagement Agent
 
 Discovers conversations about IvyEdge's topics across Instagram, Threads,
-Reddit, and TikTok, then either queues suggested interactions for human
-review or posts them directly (Reddit only, with --auto).
+Reddit, TikTok, and X (Twitter), then either queues suggested interactions
+for human review or posts them directly (Reddit only, with --auto).
 
 Each run saves a dated folder under engagement_output/YYYY-MM-DD/ containing
 a human-readable report.md and the raw opportunities.json.
@@ -17,6 +17,7 @@ Usage:
     python engagement_agent.py --platform reddit       # Reddit only
     python engagement_agent.py --platform threads      # Threads reply monitor only
     python engagement_agent.py --platform tiktok       # TikTok hashtags only
+    python engagement_agent.py --platform x            # X (Twitter) keyword search only
     python engagement_agent.py --auto                  # also auto-post Reddit comments
     python engagement_agent.py --dry-run               # discover + score but don't save or post
     python engagement_agent.py --show-queue            # print pending review queue
@@ -54,6 +55,7 @@ PLATFORM_ICONS = {
     "threads":   "🧵",
     "reddit":    "🤖",
     "tiktok":    "🎵",
+    "x":         "𝕏",
 }
 
 
@@ -142,7 +144,7 @@ def _save_report(opportunities: list[dict], summary: dict, dry_run: bool = False
         lines.append(f"✓ {summary['posted']} Reddit comment(s) auto-posted")
     lines.append("")
 
-    for platform in ["reddit", "instagram", "tiktok", "threads"]:
+    for platform in ["reddit", "instagram", "tiktok", "threads", "x"]:
         items = by_platform.get(platform, [])
         if not items:
             continue
@@ -274,7 +276,7 @@ def run(
     # ── Instagram ──────────────────────────────────────────────────────────
     if platform in (None, "instagram"):
         try:
-            from platform_agents.instagram_hashtag import discover as ig_discover
+            from platform_agents.instagram_scraper import discover as ig_discover
             ig_opps = ig_discover(dry_run=dry_run)
             all_opportunities.extend(ig_opps)
             logger.info("Instagram: %d opportunities", len(ig_opps))
@@ -320,6 +322,16 @@ def run(
         except Exception as e:
             logger.error("TikTok agent failed: %s", e)
 
+    # ── X (Twitter) ────────────────────────────────────────────────────────
+    if platform in (None, "x"):
+        try:
+            from platform_agents.x_agent import discover as x_discover
+            x_opps = x_discover(dry_run=dry_run)
+            all_opportunities.extend(x_opps)
+            logger.info("X: %d opportunities", len(x_opps))
+        except Exception as e:
+            logger.error("X agent failed: %s", e)
+
     summary["discovered"] = len(all_opportunities)
 
     to_queue = [o for o in all_opportunities if o.status == "pending"]
@@ -338,7 +350,7 @@ def run(
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="IvyEdge engagement agent")
     parser.add_argument(
-        "--platform", choices=["instagram", "reddit", "threads", "tiktok"],
+        "--platform", choices=["instagram", "reddit", "threads", "tiktok", "x"],
         help="Run only this platform (default: all)"
     )
     parser.add_argument(
