@@ -35,7 +35,7 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).parent / ".env", override=True)
 
 logging.basicConfig(
     level=logging.INFO,

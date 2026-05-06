@@ -32,7 +32,7 @@ from dotenv import load_dotenv
 
 from platform_agents import EngagementOpportunity
 
-load_dotenv()
+load_dotenv(Path(__file__).parent.parent / ".env", override=True)
 
 logger = logging.getLogger("ivyedge.reddit")
 
@@ -75,7 +75,7 @@ SEARCH_QUERIES = [
     "freelance income unstable bank",
 ]
 
-MIN_RELEVANCE_SCORE  = 7.0
+MIN_RELEVANCE_SCORE  = 6.0
 MAX_POSTS_PER_RUN    = 40
 MAX_COMMENTS_PER_RUN = 10
 POST_DELAY_SECONDS   = 60
@@ -156,7 +156,9 @@ def _fetch_posts(seen: set[str]) -> list[dict]:
 
             if pid in seen or pid in seen_ids:
                 continue
-            if sub.lower() not in [s.lower() for s in SUBREDDITS]:
+            # Skip obviously off-topic subreddits
+            blocklist = {"memes", "funny", "gaming", "worldnews", "politics", "askreddit"}
+            if sub.lower() in blocklist:
                 continue
             if post.get("score", 0) < 1:
                 continue
@@ -209,10 +211,11 @@ IvyEdge is pre-launch with nothing to sell. Comments must be:
      paragraph for complex situations"""
 
 
-def _score_and_draft(posts: list[dict], client: anthropic.Anthropic) -> list[EngagementOpportunity]:
-    if not posts:
-        return []
+BATCH_SIZE = 15  # posts per Claude call to stay within token limits
 
+
+def _score_batch(posts: list[dict], client: anthropic.Anthropic) -> list[dict]:
+    """Score one batch of posts. Returns list of scored dicts."""
     posts_text = "\n\n".join(
         f"POST {i+1} (id={p['id']}, r/{p['subreddit']}, score={p['score']}, "
         f"{p['num_comments']} comments):\n"
@@ -234,24 +237,19 @@ For each, output:
 
 JSON array only. No prose, no markdown fences.
 
-Score ≥7 needs ALL of:
-- OP describing a real problem IvyEdge's thesis addresses
-- Our comment adds concrete, useful advice
-- Post is recent and has real engagement
-- No great answers already covering what we'd say
+High scores (≥6): OP is describing a real problem IvyEdge addresses — 1099/gig/freelance
+income issues, credit gaps, career breaks, loan denials, variable income frustrations.
+Our comment adds concrete, useful advice they can act on today.
 
-Score <7:
-- Vague questions we can't add value to
-- Already well-answered
-- Promotional or bot posts
-- Topics outside IvyEdge's expertise
+Low scores (<6): vague questions, already well-answered, promotional posts,
+topics outside IvyEdge's expertise (investing, crypto, etc).
 
 POSTS:
 {posts_text}"""
 
     msg = client.messages.create(
         model=os.getenv("IVYEDGE_MODEL", "claude-sonnet-4-6"),
-        max_tokens=3000,
+        max_tokens=5000,
         system=_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -260,12 +258,24 @@ POSTS:
         raw = raw.split("\n", 1)[1]
         if raw.rstrip().endswith("```"):
             raw = raw.rstrip()[:-3]
-
     try:
-        scored = json.loads(raw)
+        return json.loads(raw)
     except json.JSONDecodeError:
-        logger.warning("Claude returned unparseable JSON for Reddit scoring")
+        logger.warning("Claude returned unparseable JSON for batch of %d posts", len(posts))
         return []
+
+
+def _score_and_draft(posts: list[dict], client: anthropic.Anthropic) -> list[EngagementOpportunity]:
+    if not posts:
+        return []
+
+    # Score in batches to avoid token limits
+    scored: list[dict] = []
+    for i in range(0, len(posts), BATCH_SIZE):
+        batch = posts[i:i + BATCH_SIZE]
+        scored.extend(_score_batch(batch, client))
+        if i + BATCH_SIZE < len(posts):
+            time.sleep(1)
 
     post_map = {p["id"]: p for p in posts}
     opportunities = []
