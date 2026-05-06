@@ -35,11 +35,11 @@ from dotenv import load_dotenv
 
 from platform_agents import EngagementOpportunity
 
-load_dotenv()
+load_dotenv(Path(__file__).parent.parent / ".env", override=True)
 
 logger = logging.getLogger("ivyedge.tiktok")
 
-MIN_RELEVANCE_SCORE = 6.5
+MIN_RELEVANCE_SCORE = 5.5
 MAX_VIDEOS_PER_RUN  = 25
 SEEN_LOG = Path(__file__).parent.parent / "engagement_log" / "tiktok_seen.json"
 
@@ -111,11 +111,19 @@ async def _fetch_videos_async(seen: set[str]) -> list[dict]:
     seen_urls: set[str] = set()
 
     async with TikTokApi() as api:
+        session_kwargs = dict(
+            num_sessions=1,
+            sleep_after=5,
+            headless=True,
+            browser="webkit",   # webkit has better TikTok success rate than chromium
+        )
         if ms_token:
-            await api.create_sessions(ms_tokens=[ms_token], num_sessions=1,
-                                      sleep_after=3, headless=True)
-        else:
-            await api.create_sessions(num_sessions=1, sleep_after=3, headless=True)
+            session_kwargs["ms_tokens"] = [ms_token]
+        try:
+            await api.create_sessions(**session_kwargs)
+        except Exception as e:
+            logger.warning("TikTok session creation failed: %s", e)
+            return []
 
         for hashtag in HASHTAGS:
             if len(videos) >= MAX_VIDEOS_PER_RUN:
