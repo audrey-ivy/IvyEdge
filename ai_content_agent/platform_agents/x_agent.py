@@ -218,10 +218,11 @@ def _extract_tweets_from_response(data, posts, seen, seen_ids, query):
             continue
         uid    = str(tw.get("user_id_str", ""))
         user   = user_map.get(uid, {})
-        screen = user.get("screen_name", uid)
+        screen = user.get("screen_name", "")
+        url    = f"https://x.com/{screen}/status/{tid}" if screen else f"https://x.com/i/web/status/{tid}"
         posts.append({
             "id":      tid,
-            "url":     f"https://x.com/{screen}/status/{tid}",
+            "url":     url,
             "author":  screen,
             "text":    text[:600],
             "likes":   tw.get("favorite_count", 0),
@@ -264,9 +265,10 @@ def _parse_graphql_tweet(result, posts, seen, seen_ids, query):
                         .get("result", {})
                         .get("legacy", {})
                         .get("screen_name", ""))
+        url    = f"https://x.com/{screen}/status/{tid}" if screen else f"https://x.com/i/web/status/{tid}"
         posts.append({
             "id":      tid,
-            "url":     f"https://x.com/{screen}/status/{tid}",
+            "url":     url,
             "author":  screen,
             "text":    text[:600],
             "likes":   legacy.get("favorite_count", 0),
@@ -290,14 +292,18 @@ async def _extract_tweets_from_dom(page, query, seen, seen_ids):
                     continue
                 link_el = await article.query_selector('a[href*="/status/"]')
                 href    = await link_el.get_attribute("href") if link_el else ""
-                parts   = href.strip("/").split("/")
-                tid     = parts[-1] if parts else ""
-                screen  = parts[0]  if parts else ""
-                if not tid or tid in seen or tid in seen_ids:
+                # href is either "/username/status/id" or full URL
+                path    = href.replace("https://x.com", "").strip("/")
+                parts   = path.split("/")
+                # parts = ["username", "status", "id"]
+                tid     = parts[-1] if len(parts) >= 3 else ""
+                screen  = parts[0]  if len(parts) >= 3 and parts[0] not in ("", "i") else ""
+                if not tid or not tid.isdigit() or tid in seen or tid in seen_ids:
                     continue
+                url = f"https://x.com/{screen}/status/{tid}" if screen else f"https://x.com/i/web/status/{tid}"
                 posts.append({
                     "id":      tid,
-                    "url":     f"https://x.com/{href.lstrip('/')}",
+                    "url":     url,
                     "author":  screen,
                     "text":    text[:600],
                     "likes":   0, "reposts": 0, "replies": 0,

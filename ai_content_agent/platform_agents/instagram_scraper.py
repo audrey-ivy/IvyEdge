@@ -117,6 +117,18 @@ def _fetch_posts(seen: set[str]) -> list[dict]:
         quiet=True,
     )
 
+    # Log in — required since Instagram locked down public hashtag browsing in 2024
+    username = os.getenv("INSTAGRAM_USERNAME", "")
+    password = os.getenv("INSTAGRAM_PASSWORD", "")
+    if username and password:
+        try:
+            L.login(username, password)
+            logger.info("Instagram: logged in as %s", username)
+        except Exception as e:
+            logger.warning("Instagram login failed: %s — trying without login", e)
+    else:
+        logger.warning("INSTAGRAM_USERNAME/PASSWORD not set — hashtag scraping may fail")
+
     posts: list[dict] = []
     seen_ids: set[str] = set()
 
