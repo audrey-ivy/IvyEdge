@@ -348,13 +348,14 @@ def cmd_batch(args: argparse.Namespace) -> int:
         print(f"Calendar is missing columns: {missing}", file=sys.stderr)
         return 1
 
-    all_queued = [r for r in rows if r.get("status", "").strip().lower() == "queued"]
-    if not all_queued:
-        print("No rows with status='queued'. Nothing to do.")
+    # Accept both 'scheduled' (regular calendar) and 'queued' (urgent trending topics)
+    READY_STATUSES = {"scheduled", "queued"}
+    all_ready = [r for r in rows if r.get("status", "").strip().lower() in READY_STATUSES]
+    if not all_ready:
+        print("No articles with status='scheduled' or 'queued'. Nothing to do.")
         return 0
 
-    # Only generate posts due within the next 7 days (this week's content).
-    # Future posts stay queued until their week arrives.
+    # Only process articles due within the next 7 days.
     today = datetime.utcnow().date()
     cutoff = today + __import__("datetime").timedelta(days=7)
 
@@ -371,17 +372,21 @@ def cmd_batch(args: argparse.Namespace) -> int:
                 continue
         return None
 
-    queued = []
-    for r in all_queued:
+    due = []
+    for r in all_ready:
         pub = _parse_date_flexible(r.get("scheduled_date", ""))
         if pub is None or pub <= cutoff:
-            queued.append(r)
+            due.append((pub or today, r))
 
-    if not queued:
-        print(f"No posts due within the next 7 days (cutoff {cutoff}). Nothing to generate.")
+    if not due:
+        print(f"No articles due within the next 7 days (cutoff {cutoff}). Nothing to generate.")
         return 0
 
-    print(f"Found {len(queued)} post(s) due by {cutoff} (skipping {len(all_queued)-len(queued)} future posts). Generating...\n")
+    # Sort by date and take only ONE — one article per Monday run.
+    due.sort(key=lambda x: x[0])
+    queued = [due[0][1]]
+
+    print(f"Generating 1 article (next due: {due[0][0]}). {len(due)-1} more article(s) queued for future weeks.\n")
 
     agent = IvyEdgeContentAgent(model=args.model, context_dir=args.context_dir)
     out_root = Path(args.output)
